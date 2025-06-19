@@ -629,7 +629,7 @@ public class Main {
         crs.removeStudentFromPriorityQueue(studentId, courseId);
     }
 
-    // New methods in Main to handle viewing the waitlist and priority queue
+    // methods to handle viewing the waitlist and priority queue
     private static void viewWaitlistByCourseId(CourseRegistrationSystem crs, Scanner scanner) {
         if (!crs.hasAnyCourse()) {
             System.out.println("⚠ No course data available.");
