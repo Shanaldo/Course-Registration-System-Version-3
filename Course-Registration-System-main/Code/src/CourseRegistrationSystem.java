@@ -1037,13 +1037,17 @@ public class CourseRegistrationSystem {
         return false;
     }
 
-    // Add a new user
+      // Add a new user
     public void addUser(String username, String password, String role, String email) {
         boolean exists = users.stream().anyMatch(user -> user.getUsername().equals(username));
         if (!exists) {
             users.add(new User(username, password, role, email));
             saveUsersToFile();
-            System.out.println("User added successfully with username: " + username + " and ID as password.");
+            if (role.equalsIgnoreCase("student")) {
+                System.out.println("User added successfully with username: " + username + " and ID as password.");
+            } else {
+                System.out.println("User added successfully with username: " + username + " and unique password.");
+            }
         }
     }
 
