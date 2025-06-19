@@ -26,7 +26,7 @@ public class Course implements Serializable {
 
     private LinkedList<Student> enrolledStudents;
     private Queue<Student> waitlist;
-    private PriorityQueue<Student> priorityQueue; // New attribute for the priority queue
+    private PriorityQueue<Student> priorityQueue; // attribute for the priority queue
     private LinkedList<String> prerequisites;
 
     //Holds the dynamic grading components for a course
