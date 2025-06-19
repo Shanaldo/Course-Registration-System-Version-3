@@ -66,11 +66,12 @@ public class Main {
         System.out.print("Enter password: ");
         String password = scanner.nextLine();
 
-        if (crs.authenticateUser(username, password, role)) {
+        if (crs.authenticateUser(username, SecurityUtil.hashPassword(password), role)) {
             System.out.println("Login successful!");
             if (role.equals("admin")) {
-                adminMenu(crs, scanner);
-            } else {
+                User loggedInAdmin = crs.getUserByUsername(username);
+                adminMenu(crs, scanner, loggedInAdmin);
+        } else {
                 // Student role: retrieve student ID by username
                 String studentId = crs.getStudentIdByUsername(username);
                 if (studentId == null) {
@@ -95,7 +96,7 @@ public class Main {
                             break;
                         }
                     }
-                    crs.updateUserPassword(username, newPassword);
+                    crs.updateUserPassword(username, SecurityUtil.hashPassword(newPassword));
                     System.out.println("Your password has been updated. Please use the new password next time.\n");
                 }
 
@@ -108,7 +109,7 @@ public class Main {
     }
 
     // Admin Menu with full access to system functionality
-    public static void adminMenu(CourseRegistrationSystem crs, Scanner scanner) {
+    public static void adminMenu(CourseRegistrationSystem crs, Scanner scanner, User currentUser) {
         int choice = -1;
 
         do {
@@ -130,7 +131,7 @@ public class Main {
                     case 1 -> studentAdminMenu(crs, scanner); // Call student submenu
                     case 2 -> courseAdminMenu(crs, scanner);  // Call course submenu
                     case 3 -> gradeAdminMenu(crs, scanner);   // Call grade submenu
-                    case 4 -> adminManagementMenu(crs, scanner); // call Admin submenu
+                    case 4 -> adminManagementMenu(crs, scanner, currentUser); // call Admin submenu
                     case 0 -> System.out.println("Logging out...");
                     default -> System.out.println("Invalid choice. Please enter a valid number.");
                 }
@@ -305,8 +306,7 @@ public class Main {
         } while (choice != 0);
     }
 
-    // Admin → Admin Management submenu
-    public static void adminManagementMenu(CourseRegistrationSystem crs, Scanner scanner) {
+    public static void adminManagementMenu(CourseRegistrationSystem crs, Scanner scanner, User currentUser) {
         int choice = -1;
 
         do {
@@ -317,20 +317,50 @@ public class Main {
                 System.out.println("| 1. Add Admin                     |");
                 System.out.println("| 2. Remove Admin                  |");
                 System.out.println("| 3. Modify Admin                  |");
-                System.out.println("| 4. Display All Admins           |");
-                System.out.println("| 5. View Admin Details           |");
-                System.out.println("| 0. Back to Admin Menu           |");
+                System.out.println("| 4. Display All Admins            |");
+                System.out.println("| 5. View Admin Details            |");
+                System.out.println("| 0. Back to Admin Menu            |");
                 System.out.println("+----------------------------------+");
                 System.out.print("Enter your choice: ");
                 choice = scanner.nextInt();
                 scanner.nextLine(); // Consume newline
 
                 switch (choice) {
-                    case 1 -> addAdmin(crs, scanner);
-                    case 2 -> removeAdmin(crs, scanner);
-                    case 3 -> modifyAdmin(crs, scanner);
-                    case 4 -> crs.displayAllAdmins();
-                    case 5 -> viewAdminDetails(crs, scanner);
+                    case 1 -> {
+                        if (currentUser.getAdminLevel() == 3) {
+                            addAdmin(crs, scanner, currentUser);
+                        } else {
+                            System.out.println("Only Master Admins can add new admins.");
+                        }
+                    }
+                    case 2 -> {
+                        if (currentUser.getAdminLevel() == 3) {
+                            removeAdmin(crs, scanner, currentUser);
+                        } else {
+                            System.out.println("Only Master Admins can remove admins.");
+                        }
+                    }
+                    case 3 -> {
+                        if (currentUser.getAdminLevel() == 3) {
+                            modifyAdmin(crs, scanner, currentUser);
+                        } else {
+                            System.out.println("Only Master Admins can modify admins.");
+                        }
+                    }
+                    case 4 -> {
+                        if (currentUser.getAdminLevel() >= 2) {
+                            crs.displayAllAdmins();
+                        } else {
+                            System.out.println("You do not have permission to view all admins.");
+                        }
+                    }
+                    case 5 -> {
+                        if (currentUser.getAdminLevel() >= 2) {
+                            viewAdminDetails(crs, scanner);
+                        } else {
+                            System.out.println("You do not have permission to view admin details.");
+                        }
+                    }
                     case 0 -> System.out.println("Returning to Admin Menu...");
                     default -> System.out.println("Invalid choice. Please enter a valid number.");
                 }
@@ -563,7 +593,7 @@ public class Main {
             return;
         }
 
-        crs.updateUserPassword(username, newPassword);
+        crs.updateUserPassword(username, SecurityUtil.hashPassword(newPassword));
         System.out.println("Password successfully reset!");
     }
 
@@ -736,16 +766,15 @@ public class Main {
             return;
         }
 
-        // Check for duplicate student ID immediately
         if (crs.getStudentById(studentId) != null) {
-            System.out.println("A student with ID " + studentId + " already exists. Cannot add duplicate student ID.");
+            System.out.println("A student with ID " + studentId + " already exists.");
             return;
         }
 
         System.out.print("Enter student name (e.g., John Doe): ");
         String studentName = scanner.nextLine().trim();
         if (!studentName.matches("[A-Z][a-zA-Z]+ [A-Z][a-zA-Z]+")) {
-            System.out.println("Invalid student name. It must contain a first and last name, each starting with a capital letter.");
+            System.out.println("Invalid name. It must have first and last name starting with capital letters.");
             return;
         }
 
@@ -756,19 +785,21 @@ public class Main {
 
             if (email.equalsIgnoreCase("exit")) {
                 System.out.println("Student email entry cancelled.");
-                return; // or break; depending on your control flow
+                return;
             }
 
-            if (isValidEmail(email)) {
-                break;
-            } else {
-                System.out.println("Invalid email format. Please enter a valid email address (e.g., name@example.com).");
-            }
+            if (isValidEmail(email)) break;
+            else System.out.println("Invalid email format. Try again.");
         }
 
-
+        // Create Student object
         Student student = new Student(studentId, studentName, email);
-        crs.addStudent(student); // Adds student with their ID as default password
+        crs.addStudent(student);
+
+        // Also add login user with ID as hashed password
+        String hashedPassword = SecurityUtil.hashPassword(studentId);
+        User studentUser = new User(studentId, hashedPassword, "student", email, 0);
+        crs.addUser(studentUser);
 
         System.out.println("Student added successfully with ID# as default password.");
     }
@@ -934,34 +965,122 @@ public class Main {
         crs.removeCourseFromStudent(studentId, courseId, false); // Pass false for student
     }
 
-    public static void addAdmin(CourseRegistrationSystem crs, Scanner scanner) {
+    public static void addAdmin(CourseRegistrationSystem crs, Scanner scanner, User currentUser) {
+        if (!"admin".equals(currentUser.getRole()) || currentUser.getAdminLevel() != 3) {
+            System.out.println("Only Master Admins can add new admins.");
+            return;
+        }
+
         System.out.print("Enter admin username: ");
         String username = scanner.nextLine();
         System.out.print("Enter admin password: ");
         String password = scanner.nextLine();
-        System.out.print("Enter admin email: ");
-        String email = scanner.nextLine();
+        String email;
+        while (true) {
+            System.out.print("Enter admin email: ");
+            email = scanner.nextLine();
+            if (isValidEmail(email)) {
+                break;
+            } else {
+                System.out.println("Invalid email format. Please enter a valid email.");
+            }
+        }
 
-        crs.addUser(username, password, "admin", email);
-        System.out.println("Admin added successfully.");
+        int level;
+        while (true) {
+            System.out.print("Enter admin level (1 = Admin, 2 = Senior Admin, 3 = Master Admin): ");
+            if (scanner.hasNextInt()) {
+                level = scanner.nextInt();
+                scanner.nextLine(); // Consume newline
+                if (level < 1 || level > 3) {
+                    System.out.println("Invalid admin level. Choose 1, 2, or 3.");
+                    continue;
+                }
+                if (level > currentUser.getAdminLevel()) {
+                    System.out.println("You can't assign an admin level higher than your own.");
+                    return;
+                }
+                break;
+            } else {
+                System.out.println("Please enter a valid number.");
+                scanner.nextLine();
+            }
+        }
+
+        User newAdmin = new User(username, SecurityUtil.hashPassword(password), "admin", email, level);
+        crs.addUser(newAdmin);
+        System.out.println("Admin added successfully with level: " + newAdmin.getAdminLevelName());
     }
 
-    public static void removeAdmin(CourseRegistrationSystem crs, Scanner scanner) {
+
+    public static void removeAdmin(CourseRegistrationSystem crs, Scanner scanner, User currentUser) {
+        if (!"admin".equals(currentUser.getRole()) || currentUser.getAdminLevel() != 3) {
+            System.out.println("Only Master Admins can perform this action.");
+            return;
+        }
+
         System.out.print("Enter admin username to remove: ");
         String username = scanner.nextLine();
+
         if (username.equalsIgnoreCase("master_admin")) {
             System.out.println("Cannot remove master admin.");
             return;
         }
+
+        User target = crs.getUserByUsername(username);
+        if (target == null || !"admin".equals(target.getRole())) {
+            System.out.println("No admin account found with this username.");
+            return;
+        }
+
+        if (target.getAdminLevel() >= currentUser.getAdminLevel()) {
+            System.out.println("You can only remove admins with a lower level than yours.");
+            return;
+        }
+
         crs.removeUserByUsernameAndRole(username, "admin");
+        System.out.println("Admin removed successfully.");
     }
 
-    public static void modifyAdmin(CourseRegistrationSystem crs, Scanner scanner) {
+    public static void modifyAdmin(CourseRegistrationSystem crs, Scanner scanner, User currentUser) {
+        if (!"admin".equals(currentUser.getRole()) || currentUser.getAdminLevel() != 3) {
+            System.out.println("Only Master Admins can perform this action.");
+            return;
+        }
+
         System.out.print("Enter admin username to modify: ");
         String username = scanner.nextLine();
+
+        User target = crs.getUserByUsername(username);
+        if (target == null || !"admin".equals(target.getRole())) {
+            System.out.println("Admin not found.");
+            return;
+        }
+
+        if (target.getAdminLevel() >= currentUser.getAdminLevel()) {
+            System.out.println("You can only modify admins with a lower level than yours.");
+            return;
+        }
+
         System.out.print("Enter new email: ");
         String newEmail = scanner.nextLine();
-        crs.modifyUserEmail(username, "admin", newEmail);
+        if (!isValidEmail(newEmail)) {
+            System.out.println("Invalid email format. Update cancelled.");
+            return;
+        }
+        target.setEmail(newEmail);
+
+        System.out.print("Enter new admin level (1-3): ");
+        int newLevel = scanner.nextInt();
+        scanner.nextLine();
+
+        if (newLevel >= currentUser.getAdminLevel()) {
+            System.out.println("You can't assign an admin level equal to or higher than your own.");
+            return;
+        }
+
+        target.setAdminLevel(newLevel);
+        System.out.println("Admin details updated.");
     }
 
     public static void viewAdminDetails(CourseRegistrationSystem crs, Scanner scanner) {
