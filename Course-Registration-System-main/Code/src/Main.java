@@ -11,6 +11,7 @@ import java.util.Random;
 
 public class Main {
     private static final Map<String, VerificationEntry> verificationCodes = new HashMap<>();
+    private static final Map<String, LoginAttempt> loginAttempts = new HashMap<>();
 
     // Inner class to hold both code and timestamp
     private static class VerificationEntry {
@@ -22,6 +23,15 @@ public class Main {
         }
     }
 
+    private static class LoginAttempt {
+        int attempts;
+        long lockoutTime;
+
+        LoginAttempt() {
+            this.attempts = 0;
+            this.lockoutTime = 0;
+        }
+    }
 
     public static void main(String[] args) {
         CourseRegistrationSystem crs = new CourseRegistrationSystem();
@@ -59,29 +69,41 @@ public class Main {
         scanner.close();
     }
 
-    // Handles the login process and menu redirection
     private static void handleLogin(CourseRegistrationSystem crs, Scanner scanner, String role) {
         System.out.print("Enter username: ");
         String username = scanner.nextLine();
         System.out.print("Enter password: ");
         String password = scanner.nextLine();
 
-        if (crs.authenticateUser(username, SecurityUtil.hashPassword(password), role)) {
+        // Lockout check
+        LoginAttempt attempt = loginAttempts.getOrDefault(username, new LoginAttempt());
+        long now = System.currentTimeMillis();
+
+        if (attempt.lockoutTime > now) {
+            long remaining = (attempt.lockoutTime - now) / 1000;
+            System.out.println("Too many failed attempts. Please try again in " + remaining + " seconds.");
+            return;
+        }
+
+        boolean authenticated = crs.authenticateUser(username, SecurityUtil.hashPassword(password), role);
+        if (authenticated) {
             System.out.println("Login successful!");
+            loginAttempts.remove(username); // Reset lockout on success
+
             if (role.equals("admin")) {
                 User loggedInAdmin = crs.getUserByUsername(username);
                 adminMenu(crs, scanner, loggedInAdmin);
-        } else {
-                // Student role: retrieve student ID by username
+            } else {
+                // Student login
                 String studentId = crs.getStudentIdByUsername(username);
                 if (studentId == null) {
-                    System.out.println("Student ID not found. Please contact support.");
+                    System.out.println("⚠ Student ID not found. Please contact support.");
                     return;
                 }
 
-                // First‐login check: if they used their ID as password, force a change
+                // First-login check
                 if (password.equals(studentId)) {
-                    System.out.println("\n⚠WARNING: This is your first login.");
+                    System.out.println("\n⚠ WARNING: This is your first login.");
                     System.out.println("For security reasons, you must change your default password.");
 
                     String newPassword;
@@ -96,15 +118,23 @@ public class Main {
                             break;
                         }
                     }
+
                     crs.updateUserPassword(username, SecurityUtil.hashPassword(newPassword));
                     System.out.println("Your password has been updated. Please use the new password next time.\n");
                 }
 
-                // Proceed to student menu with the (unchanged) studentId
                 studentMenu(crs, scanner, studentId);
             }
+
         } else {
-            System.out.println("Invalid credentials. Please try again.");
+            attempt.attempts++;
+            if (attempt.attempts >= 5) {
+                attempt.lockoutTime = now + (30 * 60 * 1000); // 30 minutes
+                System.out.println("Too many failed login attempts. You are locked out for 30 minutes.");
+            } else {
+                System.out.println("Invalid credentials. Attempts left: " + (5 - attempt.attempts));
+            }
+            loginAttempts.put(username, attempt);
         }
     }
 
