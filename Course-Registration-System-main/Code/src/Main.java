@@ -773,7 +773,7 @@ public class Main {
         System.out.println("Student added successfully with ID# as default password.");
     }
 
-    // New method for student self-enrollment
+    // method for student self-enrollment
     public static void enrollSelfInCourse(CourseRegistrationSystem crs, Scanner scanner, String studentId) {
         System.out.println("\n+----------------------------------+");
         System.out.println("|       Course Enrollment          |");
