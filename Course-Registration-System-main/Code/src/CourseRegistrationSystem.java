@@ -1013,7 +1013,8 @@ public class CourseRegistrationSystem {
     }
 
     private void createDefaultUsers() {
-        users.add(new User("Shanaldo Carty", "Cinnamon Bun", "admin", "shanaldocarty937@gmail.com"));
+        String hashedPassword = SecurityUtil.hashPassword("Cinnamon Bun");
+        users.add(new User("Shanaldo Carty", hashedPassword, "admin", "shanaldocarty937@gmail.com", 3)); // Level 3 = Master Admin
     }
 
     public String getUsernameByEmail(String email) {
@@ -1037,17 +1038,24 @@ public class CourseRegistrationSystem {
         return false;
     }
 
-      // Add a new user
+    // Add a new user
     public void addUser(String username, String password, String role, String email) {
         boolean exists = users.stream().anyMatch(user -> user.getUsername().equals(username));
         if (!exists) {
-            users.add(new User(username, password, role, email));
+            users.add(new User(username, SecurityUtil.hashPassword(password), role, email));
             saveUsersToFile();
             if (role.equalsIgnoreCase("student")) {
                 System.out.println("User added successfully with username: " + username + " and ID as password.");
             } else {
                 System.out.println("User added successfully with username: " + username + " and unique password.");
             }
+        }
+    }
+
+    public void addUser(User user) {
+        if (getUserByUsername(user.getUsername()) == null) {
+            users.add(user);
+            saveUsersToFile();
         }
     }
 
@@ -1089,6 +1097,28 @@ public class CourseRegistrationSystem {
         System.out.println("User \"" + username + "\" with role \"" + role + "\" not found.");
     }
 
+    public void newAdmin(User user) {
+        if (user != null && "admin".equals(user.getRole())) {
+            // Replace existing user if same username already exists
+            removeUserByUsername(user.getUsername());
+            users.add(user);
+            saveUsersToFile();
+        }
+    }
+
+    private void removeUserByUsername(String username) {
+        users.removeIf(user -> user.getUsername().equalsIgnoreCase(username));
+    }
+
+
+    public User getUserByUsername(String username) {
+        for (User user : users) {
+            if (user.getUsername().equalsIgnoreCase(username)) {
+                return user;
+            }
+        }
+        return null;
+    }
 
     // Find a course by ID
     public Course findCourseById(String courseId) {
