@@ -1,5 +1,5 @@
 // Author: Shanaldo Carty
-// Completed Date: Pending, 2025
+// Completed Date: June 20, 2025
 
 import java.util.InputMismatchException;
 import java.util.LinkedList;
@@ -114,6 +114,8 @@ public class Main {
                             System.out.println("Password cannot be empty. Try again.");
                         } else if (newPassword.equals(studentId)) {
                             System.out.println("New password cannot be the same as your student ID. Try again.");
+                        } else if (!SecurityUtil.isStrongPassword(newPassword)) {
+                            System.out.println("Password must be at least 8 characters and include uppercase, lowercase, digit, and special character.");
                         } else {
                             break;
                         }
@@ -612,8 +614,16 @@ public class Main {
             return;
         }
 
-        System.out.print("Enter your new password: ");
-        String newPassword = scanner.nextLine().trim();
+        String newPassword;
+        while (true) {
+            System.out.print("Enter your new password: ");
+            newPassword = scanner.nextLine().trim();
+            if (!SecurityUtil.isStrongPassword(newPassword)) {
+                System.out.println("Password must be at least 8 characters and include uppercase, lowercase, digit, and special character.");
+            } else {
+                break;
+            }
+        }
 
         System.out.print("Re-enter your new password to confirm: ");
         String confirmPassword = scanner.nextLine().trim();
@@ -1005,6 +1015,12 @@ public class Main {
         String username = scanner.nextLine();
         System.out.print("Enter admin password: ");
         String password = scanner.nextLine();
+
+        if (!SecurityUtil.isStrongPassword(password)) {
+            System.out.println("Password must be at least 8 characters and include uppercase, lowercase, digit, and special character.");
+            return;
+        }
+
         String email;
         while (true) {
             System.out.print("Enter admin email: ");
