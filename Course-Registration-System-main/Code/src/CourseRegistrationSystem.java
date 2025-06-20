@@ -1,5 +1,5 @@
 // Author: Shanaldo Carty
-// Completed Date: Pending, 2025
+// Completed Date: June 20, 2025
 
 import java.io.*;
 import java.util.*;
@@ -309,6 +309,11 @@ public class CourseRegistrationSystem {
 
     // Update a user’s password (e.g., when the student sets a new one on first login)
     public void updateUserPassword(String username, String newPassword) {
+        if (!SecurityUtil.isStrongPassword(newPassword)) {
+            System.out.println("New password is too weak. It must include uppercase, lowercase, digit, special character, and be at least 8 characters.");
+            return;
+        }
+
         for (User user : users) {
             if (user.getUsername().equals(username)) {
                 user.setPassword(newPassword);
@@ -1042,6 +1047,10 @@ public class CourseRegistrationSystem {
     public void addUser(String username, String password, String role, String email) {
         boolean exists = users.stream().anyMatch(user -> user.getUsername().equals(username));
         if (!exists) {
+            if (!SecurityUtil.isStrongPassword(password)) {
+                System.out.println("Password is too weak. It must be at least 8 characters and include uppercase, lowercase, digit, and special character.");
+                return;
+            }
             users.add(new User(username, SecurityUtil.hashPassword(password), role, email));
             saveUsersToFile();
             if (role.equalsIgnoreCase("student")) {
@@ -1051,6 +1060,7 @@ public class CourseRegistrationSystem {
             }
         }
     }
+
 
     public void addUser(User user) {
         if (getUserByUsername(user.getUsername()) == null) {
