@@ -1,3 +1,6 @@
+// Author: Shanaldo Carty
+// Completed Date: June 20, 2025
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -17,4 +20,10 @@ public class SecurityUtil {
             throw new RuntimeException("SHA-256 algorithm not found", e);
         }
     }
+
+    public static boolean isStrongPassword(String password) {
+        String pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]).{8,}$";
+        return password.matches(pattern);
+    }
+
 }
