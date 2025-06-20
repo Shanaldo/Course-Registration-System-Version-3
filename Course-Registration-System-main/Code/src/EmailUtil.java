@@ -1,3 +1,6 @@
+// Author: Shanaldo Carty
+// Completed Date: June 20, 2025
+
 import java.util.Properties;
 import javax.mail.*;
 import javax.mail.internet.*;
