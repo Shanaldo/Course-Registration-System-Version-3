@@ -1,3 +1,6 @@
+// Author: Shanaldo Carty
+// Completed Date: June 20, 2025
+
 // GradingComponent.java
 import java.util.Objects;
 
