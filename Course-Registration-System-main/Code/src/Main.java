@@ -85,7 +85,7 @@ public class Main {
             return;
         }
 
-        boolean authenticated = crs.authenticateUser(username, SecurityUtil.hashPassword(password), role);
+        boolean authenticated = crs.authenticateUser(username, password, role);
         if (authenticated) {
             System.out.println("Login successful!");
             loginAttempts.remove(username); // Reset lockout on success
