@@ -121,7 +121,7 @@ public class Main {
                         }
                     }
 
-                    crs.updateUserPassword(username, SecurityUtil.hashPassword(newPassword));
+                    crs.updateUserPassword(username, newPassword);
                     System.out.println("Your password has been updated. Please use the new password next time.\n");
                 }
 
@@ -1057,8 +1057,7 @@ public class Main {
         crs.addUser(newAdmin);
         System.out.println("Admin added successfully with level: " + newAdmin.getAdminLevelName());
     }
-
-
+    
     public static void removeAdmin(CourseRegistrationSystem crs, Scanner scanner, User currentUser) {
         if (!"admin".equals(currentUser.getRole()) || currentUser.getAdminLevel() != 3) {
             System.out.println("Only Master Admins can perform this action.");
