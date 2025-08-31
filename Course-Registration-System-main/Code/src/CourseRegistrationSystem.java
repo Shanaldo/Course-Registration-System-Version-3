@@ -316,12 +316,13 @@ public class CourseRegistrationSystem {
 
         for (User user : users) {
             if (user.getUsername().equals(username)) {
-                user.setPassword(newPassword);
+                user.setPassword(SecurityUtil.hashPassword(newPassword));
                 saveUsersToFile();
                 System.out.println("Password for user \"" + username + "\" has been updated.");
                 return;
             }
         }
+
         System.out.println("User \"" + username + "\" not found. Cannot update password.");
     }
 
@@ -1035,7 +1036,7 @@ public class CourseRegistrationSystem {
     public boolean authenticateUser(String username, String password, String role) {
         for (User user : users) {
             if (user.getUsername().equals(username)
-                    && user.getPassword().equals(password)
+                    && user.getPassword().equals(SecurityUtil.hashPassword(password)) // Hash the input password
                     && user.getRole().equals(role)) {
                 return true;
             }
@@ -1045,14 +1046,20 @@ public class CourseRegistrationSystem {
 
     // Add a new user
     public void addUser(String username, String password, String role, String email) {
-        boolean exists = users.stream().anyMatch(user -> user.getUsername().equals(username));
+        boolean exists = users.stream().anyMatch(u -> u.getUsername().equals(username));
         if (!exists) {
-            if (!SecurityUtil.isStrongPassword(password)) {
-                System.out.println("Password is too weak. It must be at least 8 characters and include uppercase, lowercase, digit, and special character.");
+
+            // Allow default student passwords that are exactly a 7-digit ID.
+            boolean isStudentDefault = role.equalsIgnoreCase("student") && password.matches("\\d{7}");
+
+            if (!isStudentDefault && !SecurityUtil.isStrongPassword(password)) {
+                System.out.println("Password is too weak. It must be at least 8 chars and include uppercase, lowercase, digit, and special character.");
                 return;
             }
+
             users.add(new User(username, SecurityUtil.hashPassword(password), role, email));
             saveUsersToFile();
+
             if (role.equalsIgnoreCase("student")) {
                 System.out.println("User added successfully with username: " + username + " and ID as password.");
             } else {
@@ -1060,6 +1067,7 @@ public class CourseRegistrationSystem {
             }
         }
     }
+
 
 
     public void addUser(User user) {
