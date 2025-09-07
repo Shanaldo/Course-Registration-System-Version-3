@@ -396,7 +396,6 @@ public class Course implements Serializable {
                 ", Prerequisites: " + prerequisites +
                 ", Enrolled Students: " + enrolledStudents.size() +
                 ", Waitlist: " + waitlist.size() +
-                ", Priority Queue: " + priorityQueue.size() +
-                ", Grading Components: " + gradingComponents;
+                ", Priority Queue: " + priorityQueue.size();
     }
 }
